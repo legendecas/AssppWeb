@@ -71,6 +71,26 @@ describe("apple/bag", () => {
     expect(result.authURL).toBe(defaultAuthURL);
   });
 
+  it('reads SAP setup endpoints and the integer protocol version from urlBag', async () => {
+    const setupURL = 'https://fpinit.itunes.apple.com/v1/signSapSetup/legacy';
+    const certificateURL = 'https://s.mzstatic.com/sap/setupCert.plist';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => buildPlist({
+        urlBag: {
+          'sign-sap-setup': setupURL,
+          'sign-sap-setup-cert': certificateURL,
+          'sign-sap-version': 200,
+        },
+      }),
+    }));
+
+    expect(await fetchBag('aabbccddeeff')).toEqual({
+      authURL: defaultAuthURL,
+      sapEndpoints: { setupURL, certificateURL, version: 200 },
+    });
+  });
+
   it("falls back when bag proxy returns non-OK", async () => {
     vi.stubGlobal(
       "fetch",

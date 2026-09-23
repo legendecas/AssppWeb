@@ -3,6 +3,7 @@ import { createServer, Server } from "http";
 import net from "net";
 import { WebSocket } from "ws";
 import express from "express";
+import { server as wisp } from '@mercuryworkshop/wisp-js/server';
 import { setupWsProxy } from "../src/services/wsProxy.js";
 
 let httpServer: Server | null = null;
@@ -31,6 +32,25 @@ async function stopServer() {
 }
 
 describe("Wisp Proxy", () => {
+  // Regression: PR #89's SAP setup failed because these hosts were blocked.
+  it.each(['s.mzstatic.com', 'fpinit.itunes.apple.com'])(
+    'allows SAP setup connections to %s',
+    (host) => {
+      expect(wisp.options.hostname_whitelist.some((entry) =>
+        entry instanceof RegExp ? entry.test(host) : entry === host,
+      )).toBe(true);
+    },
+  );
+
+  it.each(['other.mzstatic.com', 's.mzstatic.com.example.com', 'fpinit.itunes.apple.com.example.com'])(
+    'rejects unlisted SAP-like hostname %s',
+    (host) => {
+      expect(wisp.options.hostname_whitelist.some((entry) =>
+        entry instanceof RegExp ? entry.test(host) : entry === host,
+      )).toBe(false);
+    },
+  );
+
   afterEach(async () => {
     await stopServer();
   });
