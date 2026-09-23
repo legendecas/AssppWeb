@@ -107,6 +107,60 @@ describe("apple/bag", () => {
     expect(result.authURL).toBe(defaultAuthURL);
   });
 
+  it.each(['root', 'urlBag'])('returns SAP and download endpoints from the %s together', async (location) => {
+    const redownloadURL = 'https://downloaddispatch.itunes.apple.com/r/redownload';
+    const updateURL = 'https://downloaddispatch.itunes.apple.com/up/updateProduct';
+    const setupURL = 'https://fpinit.itunes.apple.com/v1/signSapSetup/legacy';
+    const certificateURL = 'https://s.mzstatic.com/sap/setupCert.plist';
+    const values = {
+      authenticateAccount: defaultAuthURL,
+      redownloadProduct: redownloadURL,
+      updateProduct: updateURL,
+      'sign-sap-setup': setupURL,
+      'sign-sap-setup-cert': certificateURL,
+      'sign-sap-version': 200,
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => buildPlist(location === 'root' ? values : { urlBag: values }),
+    }));
+
+    expect(await fetchBag('aabbccddeeff')).toEqual({
+      authURL: defaultAuthURL,
+      redownloadURL,
+      updateURL,
+      sapEndpoints: { setupURL, certificateURL, version: 200 },
+    });
+  });
+
+  it('prefers root download endpoints while retaining nested SAP endpoints and auth fallback', async () => {
+    const setupURL = 'https://fpinit.itunes.apple.com/v1/signSapSetup/legacy';
+    const certificateURL = 'https://s.mzstatic.com/sap/setupCert.plist';
+    const redownloadURL = 'https://downloaddispatch.itunes.apple.com/r/redownload';
+    const updateURL = 'https://downloaddispatch.itunes.apple.com/up/updateProduct';
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      text: async () => buildPlist({
+        redownloadProduct: redownloadURL,
+        updateProduct: updateURL,
+        urlBag: {
+          redownloadProduct: 'https://example.com/nested-redownload',
+          updateProduct: 'https://example.com/nested-update',
+          'sign-sap-setup': setupURL,
+          'sign-sap-setup-cert': certificateURL,
+          'sign-sap-version': 200,
+        },
+      }),
+    }));
+
+    expect(await fetchBag('aabbccddeeff')).toEqual({
+      authURL: defaultAuthURL,
+      redownloadURL,
+      updateURL,
+      sapEndpoints: { setupURL, certificateURL, version: 200 },
+    });
+  });
+
   describe("normalizeAuthURL", () => {
     it("appends /fast/ to a bare native auth endpoint", () => {
       expect(

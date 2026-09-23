@@ -33,8 +33,8 @@ async function stopServer() {
 
 describe("Wisp Proxy", () => {
   // Regression: PR #89's SAP setup failed because these hosts were blocked.
-  it.each(['s.mzstatic.com', 'fpinit.itunes.apple.com'])(
-    'allows SAP setup connections to %s',
+  it.each(['s.mzstatic.com', 'fpinit.itunes.apple.com', 'uclient-api.itunes.apple.com'])(
+    'allows signing and catalog connections to %s',
     (host) => {
       expect(wisp.options.hostname_whitelist.some((entry) =>
         entry instanceof RegExp ? entry.test(host) : entry === host,
@@ -42,8 +42,8 @@ describe("Wisp Proxy", () => {
     },
   );
 
-  it.each(['other.mzstatic.com', 's.mzstatic.com.example.com', 'fpinit.itunes.apple.com.example.com'])(
-    'rejects unlisted SAP-like hostname %s',
+  it.each(['other.mzstatic.com', 's.mzstatic.com.example.com', 'fpinit.itunes.apple.com.example.com', 'uclient-api.itunes.apple.com.example.com'])(
+    'rejects unlisted signing or catalog hostname %s',
     (host) => {
       expect(wisp.options.hostname_whitelist.some((entry) =>
         entry instanceof RegExp ? entry.test(host) : entry === host,
